@@ -4,17 +4,33 @@
   "type": "module",
   "scripts": {
     "start": "bun src/index.ts",
-    "run-docker": "docker-compose up -d --build"
+    "dev": "bun --watch src/index.ts",
+    "run-docker": "docker-compose up -d --build",
+    "test": "bun test --coverage",
+    "test:unit": "bun test ./spec/unit/**/*.ts --coverage",
+    "test:integration": "bun test ./spec/integration/**/*.ts --coverage",
+    "test:e2e": "bun test ./spec/e2e/*.ts --coverage"
   },
   "devDependencies": {
-    "@types/bun": "latest",
-    "@types/pg": "^8.11.8"
+    "@testcontainers/postgresql": "^10.13.2",
+    "@testcontainers/redis": "^10.13.2",
+    "@types/bun": "^1.1.10",
+    "@types/lodash": "^4.17.10",
+    "@types/pg": "^8.11.10",
+    "@types/supertest": "^6.0.2",
+    "json-schema-to-ts": "^3.1.1",
+    "supertest": "^7.0.0",
+    "testcontainers": "^10.13.2"
   },
   "peerDependencies": {
     "typescript": "^5.0.0"
   },
   "dependencies": {
-    "fastify": "^4.28.1",
-    "pg": "^8.12.0"
+    "bee-queue": "^1.7.1",
+    "fastify": "^5.0.0",
+    "fluent-json-schema": "^5.0.0",
+    "kysely": "^0.27.4",
+    "lodash": "^4.17.21",
+    "pg": "^8.13.0"
   }
 }

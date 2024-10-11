@@ -1,5 +1,175 @@
 # EMURGO Backend Engineer Challenge
 
+## TL;DR
+### Setup
+`bun install` install dependencies
+
+### Run server
+`bun run-docker` or `docker compose up -d` if starting with bun fails for some reason
+`bun start` starts the server, will work if the DB is running
+
+### Run tests
+`bun run test:ci` runs all tests using testcontainers for PostgreSQL. Please note the container instance might hang from time to time
+`bun run test` runs all tests against the default containers started by `docker compose up`
+
+---
+
+## Architecture
+This solution was built with Clean Architecture principles in mind. The business logic is encapsulated in the `interactor` and `entity` files, while boundaries `controller` and `repository` keep the domain rules isolated from delivery and persistence mechanisms. `routes` inverses the dependency on the framework, which Uncle Bob would approve.
+
+All layers of the `blocks` domain are gathered in the same folder, so the file structure better conveys the system's intention.
+
+## Design choices
+As the main goal of the indexer is to keep address balances based on UTXOs, the database has only one table, `transactions`. This table tracks `SPENT` and `UNSPENT` transactions and the block where the transactions were spent (if so). Block ids where intentionally left out because they don't seem to contribuite to the system's objective.
+
+Transactions are processed in order, and blocks, as they are consecutive, are taken one at a time.
+
+There are sync and async ways to process blocks. When working synchronously, the server will respond with an HTTP 409 status if a new request arrives while a previous one is being processed.
+
+When processing block asynchronously, new blocks are added to a Redis FIFO queue and sequentially processed.
+
+# Future improvements
+- Implement a controller abstraction to reduce code repetition
+- Reduce data repetition in tests
+- Graceful shutdown
+- LRU balance cache
+- handle eventual sync/async conflicts
+- add block height to
+
+## Requests
+
+### **1. GET /balance/:address**
+
+- **Description**: Retrieve the balance for a specific address.
+- **Method**: `GET`
+- **URL**: `/balance/:address`
+
+#### Parameters:
+| Parameter | Type   | Required | Description                           |
+|-----------|--------|----------|---------------------------------------|
+| address   | string | Yes      | The address for which the balance is being requested. |
+
+#### Response Body:
+| Field   | Type   | Description                   |
+|---------|--------|-------------------------------|
+| balance | number | The current balance of the address. |
+
+#### Example Response:
+
+```json
+{
+  "balance": 1000
+}
+```
+
+### **2. POST /rollback?height=number**
+
+- **Description**: Rollback to a specific block height in the blockchain.
+- **Method**: `POST`
+- **URL**: `/rollback`
+
+#### Query Parameters:
+| Parameter | Type    | Required | Description                                    |
+|-----------|---------|----------|------------------------------------------------|
+| height    | integer | Yes      | The block height to which the rollback should be performed. |
+
+### **3. POST /blocks**
+
+- **Description**: Submit a new block to the blockchain.
+- **Method**: `POST`
+- **URL**: `/blocks`
+
+#### Body Parameters:
+| Parameter     | Type    | Required | Description                                       |
+|---------------|---------|----------|---------------------------------------------------|
+| id            | string  | Yes      | The block's unique identifier.                    |
+| height        | integer | Yes      | The height of the block in the blockchain.        |
+| transactions  | array   | Yes      | Array of transactions included in the block.      |
+| transactions.id      | string  | Yes      | The transaction's unique identifier.              |
+| transactions.inputs  | array   | Yes      | List of inputs for the transaction.               |
+| transactions.inputs.txId | string | Yes      | The transaction ID that this input references.    |
+| transactions.inputs.index | integer | Yes  | The index of the output in the referenced transaction. |
+| transactions.outputs | array  | Yes      | List of outputs for the transaction.              |
+| transactions.outputs.address | string | Yes  | The receiving address of the output.              |
+| transactions.outputs.value | integer | Yes    | The value associated with the output.             |
+
+#### Example Body:
+
+```json
+{
+  "id": "block123",
+  "height": 5,
+  "transactions": [
+    {
+      "id": "tx1",
+      "inputs": [
+        {
+          "txId": "tx123",
+          "index": 0
+        }
+      ],
+      "outputs": [
+        {
+          "address": "address123",
+          "value": 1000
+        }
+      ]
+    }
+  ]
+}
+```
+#### Response Body:
+Each object in the array represents a transaction with the following fields:
+
+| Field        | Type   | Description                                      |
+|--------------|--------|--------------------------------------------------|
+| txId         | string | The unique identifier of the transaction.        |
+| index        | number | The index of the transaction.                    |
+| blockHeight  | number | The height of the block in the blockchain.       |
+| address      | string | The address associated with the transaction.     |
+| value        | number | The value of the transaction.                    |
+| status       | string | The status of the transaction (`UNSPENT`. |
+
+#### Example Response:
+
+```json
+[
+  {
+    "txId": "tx123",
+    "index": 0,
+    "blockHeight": 5,
+    "address": "address123",
+    "value": 1000,
+    "status": "UNSPENT"
+  },
+  {
+    "txId": "tx124",
+    "index": 1,
+    "blockHeight": 5,
+    "address": "address124",
+    "value": 500,
+    "status": "UNSPENT"
+  }
+]
+```
+
+### **3. POST /blocks**
+
+- **Description**: Submit a new block to the blockchain.
+- **Method**: `POST`
+- **URL**: `/blocks/async`
+
+#### Body Parameters:
+- same as the sync version
+
+### Response body:
+- HTTP 202
+- empty response
+
+---
+
+# EMURGO Backend Engineer Challenge
+
 This challenge is designed to evaluate your skills with data processing and API development. You will be responsible for creating an indexer that will keep track of the balance of each address in a blockchain.
 
 Please read all instructions bellow carefully.
