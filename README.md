@@ -9,7 +9,6 @@
 `bun start` starts the server, will work if the DB is running
 
 ### Run tests
-`bun run test:ci` runs all tests using testcontainers for PostgreSQL. Please note the container instance might hang from time to time
 `bun run test` runs all tests against the default containers started by `docker compose up`
 
 ---
