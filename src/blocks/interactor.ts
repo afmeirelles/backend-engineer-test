@@ -34,8 +34,8 @@ const unlock = () => locked = false;
 /**
  * Processes a new block
  * @dev blocks are meant to be consecutive, so new incoming blocks
- * will be rejecting while there's a block being processed
- * @param {Block} block the block to be processes
+ * will be recjected while there's a block being processed
+ * @param {Block} block the block to be processed
  * @returns
  */
 export const saveNewBlock = async (block: Block): Promise<OutputRecord[]> => {
